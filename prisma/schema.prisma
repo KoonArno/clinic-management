@@ -1,0 +1,88 @@
+// schema.prisma
+datasource db {
+  provider = "mysql"
+  // ควรตั้งค่า env(DATABASE_URL) ในไฟล์ .env ดังนี้
+  // DATABASE_URL="mysql://clinic_user:clinic_password@localhost:3306/clinic_db"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- โมเดลผู้ใช้ (User) ---
+// บทบาท: clinician, reception, admin
+model User {
+  id                  Int           @id @default(autoincrement())
+  username            String        @unique  // ชื่อผู้ใช้ (unique)
+  fullName            String        @unique  // ชื่อเต็ม (unique)
+  password            String        @db.VarChar(255) // รหัสผ่าน (ควรเก็บเป็น hash)
+  role                Role          // บทบาท (ใช้ Enum)
+
+  // ความสัมพันธ์
+  assignedAppointments Appointment[] @relation("AssignedDoctor") // การนัดหมายที่แพทย์คนนี้เป็นผู้รับผิดชอบ
+  createdAppointments Appointment[] @relation("CreatedByUser")   // การนัดหมายที่ผู้ใช้คนนี้สร้าง
+
+  @@map("users")
+}
+
+// Enum สำหรับบทบาทของผู้ใช้
+enum Role {
+  clinician
+  reception
+  admin
+}
+
+// --- โมเดลผู้ป่วย (Patient) ---
+model Patient {
+  id                 Int           @id @default(autoincrement())
+  // ใช้ ID อัตโนมัติ (Int) เป็น Primary Key
+  // recordNumber: ฟิลด์นี้จะเก็บค่า PAT-001 ซึ่งต้องสร้างด้วย Logic ของ Application
+  // (เช่น ดึง id ล่าสุด, +1, และ format เป็น string)
+  recordNumber       String        @unique @db.VarChar(10) // PAT-001, PAT-002,...
+  firstName          String
+  lastName           String
+  gender             String        @db.VarChar(10) // เพศ
+  dateOfBirth        DateTime      @db.Date        // วันเกิด
+  allergies          String?       @db.Text        // อาการแพ้ (ข้อความอิสระ)
+  medicalHistory     String?       @db.Text        // ประวัติการรักษา (ข้อความอิสระ)
+  currentMedications String?       @db.Text        // ยาที่ใช้ปัจจุบัน (ข้อความอิสระ)
+
+  // ความสัมพันธ์
+  appointments       Appointment[]
+
+  @@map("patients")
+}
+
+// --- โมเดลการนัดหมาย (Appointment) ---
+model Appointment {
+  id             Int               @id @default(autoincrement())
+  // recordNumber: APT-001, APT-002, ... สร้างด้วย Logic ของ Application
+  recordNumber   String            @unique @db.VarChar(10) // APT-001, APT-002,...
+  startTime      DateTime          @db.DateTime(0) // เวลาเริ่มต้น
+  endTime        DateTime          @db.DateTime(0) // เวลาสิ้นสุด
+
+  // ความสัมพันธ์ (Foreign Keys)
+  doctorId       Int               // แพทย์ (แพทย์ที่ได้รับมอบหมาย)
+  createdByUserId Int              // สร้างโดย (ผู้ใช้ที่สร้างการนัดหมาย)
+  patientId      Int               // ผู้ป่วย
+
+  // การเชื่อมความสัมพันธ์
+  doctor         User              @relation("AssignedDoctor", fields: [doctorId], references: [id])
+  createdBy      User              @relation("CreatedByUser", fields: [createdByUserId], references: [id])
+  patient        Patient           @relation(fields: [patientId], references: [id])
+
+  // ข้อมูลเพิ่มเติม
+  notesReception String?           @db.Text          // หมายเหตุ (กำหนดโดยแผนกต้อนรับเท่านั้น)
+  status         AppointmentStatus @default(PENDING) // สถานะ (ใช้ Enum)
+  notesDoctor    String?           @db.Text          // หมายเหตุของแพทย์ (กำหนดโดยแพทย์เท่านั้น)
+
+  @@index([patientId])
+  @@map("appointments")
+}
+
+// Enum สำหรับสถานะการนัดหมาย
+enum AppointmentStatus {
+  PENDING
+  COMPLETED
+}
