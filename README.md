@@ -1,7 +1,7 @@
 # 🏥 Clinic Management System
 
 > ระบบจัดการคลินิก (Clinic Management System)  
-> พัฒนาโดยใช้ **Next.js 16**, **Prisma ORM**, และ **MariaDB/MySQL**  
+> พัฒนาโดยใช้ **Next.js 16**, **Prisma ORM**,**TypeScript**, และ **MariaDB/MySQL**  
 > รองรับการเข้าสู่ระบบ (Auth), การจัดการผู้ป่วย, การนัดหมาย และการจัดการผู้ใช้ (Role-based)
 
 ---
@@ -17,6 +17,7 @@
 | **Next.js (React 19)** | แสดงผล UI, Routing, และการ Render หน้าเว็บ (Client/Server) |
 | **Tailwind CSS v4** | จัดการ Styling และ Layout ให้ responsive |
 | **NextAuth (Client)** | ใช้เชื่อมต่อกับระบบ Auth ของฝั่ง backend เพื่อ login/logout |
+| **TypeScript** | ใช้สำหรับ Static Typing ใน Components และ Pages |
 
 ### ⚙️ Backend
 | เทคโนโลยี | รายละเอียด |
@@ -26,6 +27,7 @@
 | **Prisma ORM** | จัดการฐานข้อมูล (CRUD) ผ่าน model |
 | **NextAuth.js** | ระบบจัดการการเข้าสู่ระบบและ session |
 | **bcryptjs / jsonwebtoken** | ใช้เข้ารหัสรหัสผ่านและสร้าง JWT token |
+| **TypeScript** | ใช้สำหรับ Static Typing ใน API Routes และ Logic |
 
 ### 💾 Database
 | เทคโนโลยี | รายละเอียด |
@@ -39,26 +41,26 @@
 ## 🧭 แผนผังการทำงานของระบบ (Architecture Flow)
 
 ```
-┌────────────────────┐
-│     Frontend       │
-│  (Next.js + React) │
-│                    │
-│  • Dashboard       │
-│  • Forms / Pages   │
-│  • Auth UI         │
-└─────────┬──────────┘
+┌───────────────────────┐
+│        Frontend       │
+│ (Next.js + React.tsx) │
+│                       │
+│  • Dashboard          │
+│  • Forms / Pages      │
+│  • Auth UI            │
+└─────────┬─────────────┘
           │
    HTTP (API Routes)
           │
-┌─────────▼──────────┐
-│     Backend        │
-│ (Node.js + Next.js)│
-│                    │
-│ • NextAuth (Auth)  │
-│ • Prisma ORM       │
-│ • API Endpoints    │
-│ • Bcrypt / JWT     │
-└─────────┬──────────┘
+┌─────────▼─────────────┐
+│        Backend        │
+│ (Node.js + Next.js)   │
+│                       │
+│ • NextAuth (Auth)     │
+│ • Prisma ORM          │
+│ • API Endpoints (.ts) │
+│ • Bcrypt              │
+└─────────┬─────────────┘
           │
   SQL Queries (via Prisma)
           │
@@ -83,7 +85,7 @@
 | Backend | Node.js, Next.js API Routes, NextAuth, Prisma ORM |
 | Database | MariaDB/MySQL |
 | Auth & Security | bcryptjs, jsonwebtoken |
-| Dev Tools | ESLint, dotenv |
+| Dev Tools | TypeScript, ESLint, dotenv |
 
 ---
 
@@ -96,29 +98,37 @@ clinic-management-system/
 │   └── migrations/                # Database migrations
 ├── src/
 │   ├── app/
-│   │   ├── api/                   # API routes
+│   │   ├── api/                   # API routes (.ts)
 │   │   │   ├── appointments/      # Appointment endpoints
 │   │   │   ├── patients/          # Patient endpoints
 │   │   │   ├── users/             # User endpoints
-│   │   │   ├── auth/              # NextAuth configuration
-│   │   │   ├── register/          # Registration endpoint
-│   │   │   └── dashboard/         # Dashboard stats
-│   │   ├── auth/                  # Auth pages (login/register)
-│   │   ├── dashboard/             # Dashboard & main features
+│   │   │   ├── auth/[...nextauth]/route.ts # NextAuth configuration
+│   │   │   ├── register/route.ts  # Registration endpoint
+│   │   │   └── dashboard/stats/route.ts # Dashboard stats
+│   │   ├── auth/                  # Auth pages (.tsx)
+│   │   │   ├── login/page.tsx
+│   │   │   └── register/page.tsx
+│   │   ├── dashboard/             # Dashboard & main features (.tsx)
 │   │   │   ├── appointments/      # Appointment management
 │   │   │   └── patients/          # Patient management
+│   │   │   └── page.tsx           # Dashboard home
 │   │   ├── components/            # Reusable components
-│   │   ├── layout.jsx             # Root layout with AuthProvider
-│   │   └── page.jsx               # Home page (redirects)
+│   │   │   ├── AuthProvider.tsx
+│   │   │   └── Navbar.tsx
+│   │   ├── layout.tsx             # Root layout with AuthProvider
+│   │   └── page.tsx               # Home page (redirects)
 │   ├── lib/
-│   │   ├── prisma.js              # Prisma client instance
-│   │   └── auth.js                # Auth utilities
-│   └── middleware.js              # NextAuth middleware
+│   │   ├── prisma.ts              # Prisma client instance
+│   │   └── auth.ts                # Auth utilities (authorize func)
+│   ├── types/
+│   │   └── next-auth.d.ts         # NextAuth Type definitions
+│   └── middleware.ts              # NextAuth middleware
 ├── .env                           # Environment variables
 ├── .gitignore                     # Git ignore rules
 ├── next.config.mjs                # Next.js configuration
 ├── package.json                   # Dependencies
-├── tailwind.config.js             # Tailwind configuration
+├── postcss.config.mjs             # PostCSS configuration
+├── tsconfig.json                  # TypeScript configuration
 └── README.md                      # This file
 ```
 
@@ -172,6 +182,8 @@ npm run dev
 | 💾 ORM | Prisma ORM เชื่อมต่อ MariaDB/MySQL |
 | 🧑‍⚕️ ผู้ป่วย | บันทึก/แก้ไข/ดูข้อมูลผู้ป่วย |
 | 📅 การนัดหมาย | บันทึกข้อมูลการนัดหมาย พร้อมแพทย์ ผู้สร้าง และผู้ป่วย |
+| 📊 Dashboard | แสดงสถิติภาพรวมสำหรับ Role ที่แตกต่างกัน |
+| ⌨️ Typing | Static Type-Checking ด้วย TypeScript ทั้งหมด |
 | 📋 สถานะ | มีสถานะนัดหมาย (PENDING / COMPLETED) |
 | 🎨 UI | Tailwind CSS (v4) รองรับ responsive design |
 
