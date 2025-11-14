@@ -55,10 +55,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) { // (T
                     select: { id: true, recordNumber: true, firstName: true, lastName: true, dateOfBirth: true, gender: true }
                 },
                 doctor: { 
-                    select: { id: true, username: true }
+                    select: { id: true, username: true, fullName: true }
                 },
                 createdBy: { 
-                    select: { id: true, username: true }
+                    select: { id: true, username: true, fullName: true }
                 }
             },
         });

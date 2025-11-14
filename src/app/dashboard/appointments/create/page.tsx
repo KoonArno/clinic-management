@@ -1,29 +1,25 @@
 // src/app/dashboard/appointments/create/page.tsx
 "use client";
 
-// (TS) 1. Import React และ Types/Hooks
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-// (TS) 2. Interface สำหรับ Clinician ที่ดึงมาจาก API
 interface Clinician {
     id: number;
     username: string;
     fullName: string;
 }
 
-// (TS) 3. Interface สำหรับ Patient Suggestion (จาก API /lookup)
 interface PatientSuggestion {
     id: number;
     display: string;
     recordNumber: string;
 }
 
-// (TS) 4. Interface สำหรับ Form Data
 interface AppointmentFormData {
-    patientId: number | string; // (TS) 5. เก็บ id (number) แต่ตอนเริ่มเป็น string
+    patientId: number | string;
     doctorId: number | string;
     date: string;
     startTime: string;
@@ -34,7 +30,6 @@ interface AppointmentFormData {
 
 function CreateAppointmentPage() {
     const router = useRouter();
-    // (TS) 6. กำหนด Type ให้ State
     const [formData, setFormData] = useState<AppointmentFormData>({
         patientId: '',
         doctorId: '',
@@ -50,7 +45,6 @@ function CreateAppointmentPage() {
     const [patientSuggestions, setPatientSuggestions] = useState<PatientSuggestion[]>([]);
     const [isPatientSelected, setIsPatientSelected] = useState<boolean>(false);
     
-    // (TS) 7. กำหนด Type ให้ useRef สำหรับ Debounce
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
     
     useEffect(() => {
@@ -58,7 +52,6 @@ function CreateAppointmentPage() {
             try {
                 const res = await fetch("http://localhost:3000/api/users/clinicians");
                 if (res.ok) {
-                    // (TS) 8. กำหนด Type data
                     const data: Clinician[] = await res.json();
                     setClinicians(data);
                 } else {
@@ -71,7 +64,6 @@ function CreateAppointmentPage() {
         fetchClinicians();
     }, []);
 
-    // (TS) 9. กำหนด Type parameter 'query'
     const searchPatients = useCallback(async (query: string) => {
         if (query.length < 2) {
             setPatientSuggestions([]);
@@ -81,7 +73,6 @@ function CreateAppointmentPage() {
         try {
             const res = await fetch(`http://localhost:3000/api/patients/lookup?query=${query}`);
             if (res.ok) {
-                // (TS) 10. กำหนด Type data
                 const data: PatientSuggestion[] = await res.json();
                 setPatientSuggestions(data);
             } else {
@@ -93,7 +84,6 @@ function CreateAppointmentPage() {
         }
     }, []);
 
-    // (TS) 11. กำหนด Type Event
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setPatientSearch(value);
@@ -108,20 +98,17 @@ function CreateAppointmentPage() {
         }, 300);
     };
 
-    // (TS) 12. กำหนด Type parameter 'patient'
     const handlePatientSelect = (patient: PatientSuggestion) => {
         setPatientSearch(patient.display);
-        setFormData(prev => ({ ...prev, patientId: patient.id })); // (TS) 13. patient.id เป็น number
+        setFormData(prev => ({ ...prev, patientId: patient.id }));
         setPatientSuggestions([]);
         setIsPatientSelected(true);
     };
     
-    // (TS) 14. กำหนด Type Event
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value, error: '' });
     };
     
-    // (TS) 15. กำหนด Type Form Event
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
@@ -135,10 +122,9 @@ function CreateAppointmentPage() {
         const endDateTime = new Date(`${date} ${endTime}`).toISOString();
 
         try {
-            // (TS) 16. สร้าง Payload ที่มี Type ถูกต้อง
             const payload = {
-                patientId: patientId, // (TS) 17. patientId เป็น number แล้ว
-                doctorId: parseInt(String(doctorId)), // (TS) 18. doctorId ต้องแปลงเป็น number
+                patientId: patientId,
+                doctorId: parseInt(String(doctorId)),
                 startTime: startDateTime,
                 endTime: endDateTime,
                 notesReception: formData.notesReception,
@@ -165,39 +151,54 @@ function CreateAppointmentPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+            </div>
+
             <Navbar />
-            <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-3xl'>
-                <Link href="/dashboard/appointments" className='inline-flex items-center text-blue-600 hover:text-blue-800 font-medium mb-6 transition-colors group'>
-                    <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            
+            <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl relative z-10'>
+                <Link href="/dashboard/appointments" className='inline-flex items-center gap-2 text-indigo-600 hover:text-purple-600 font-bold mb-8 transition-all group bg-white/70 backdrop-blur-sm px-4 py-2 rounded-xl shadow-md hover:shadow-lg'>
+                    <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
                     </svg>
                     Back to Appointments
                 </Link>
                 
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="text-4xl">📅</span>
-                        <h1 className='text-4xl font-bold text-gray-900'>Create Appointment</h1>
+                <div className="mb-10 animate-fade-in-down">
+                    <div className="flex items-center gap-4 mb-3">
+                        <div className="bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 p-4 rounded-3xl shadow-2xl">
+                            <span className="text-5xl">📅</span>
+                        </div>
+                        <div>
+                            <h1 className='text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600'>
+                                Create Appointment
+                            </h1>
+                            <p className="text-gray-700 text-lg font-semibold mt-2">Schedule a new patient visit</p>
+                        </div>
                     </div>
-                    <p className="text-gray-600 text-lg ml-14">Schedule a new patient visit</p>
                 </div>
                 
-                <form onSubmit={handleSubmit} className='bg-white rounded-2xl shadow-lg border border-gray-100 p-8'>
+                <form onSubmit={handleSubmit} className='bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-10 animate-fade-in'>
                     
                     {formData.error && (
-                        <div className='bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex items-start gap-3'>
-                            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <div className='bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 text-red-700 p-5 rounded-2xl mb-8 flex items-start gap-4 shadow-lg'>
+                            <svg className="w-6 h-6 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
                             </svg>
-                            <span>{formData.error}</span>
+                            <span className="font-semibold">{formData.error}</span>
                         </div>
                     )}
 
                     {/* Patient Lookup */}
-                    <div className='mb-6'>
-                        <label className='block text-gray-700 font-semibold mb-2' htmlFor="patientSearch">
-                            1. Find Patient <span className="text-red-500">*</span>
+                    <div className='mb-8'>
+                        <label className='block text-gray-900 font-black text-lg mb-3 flex items-center gap-2' htmlFor="patientSearch">
+                            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black">1</span>
+                            Find Patient <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                             <input
@@ -207,37 +208,37 @@ function CreateAppointmentPage() {
                                 placeholder="Type patient record number or name..."
                                 value={patientSearch}
                                 onChange={handleSearchChange}
-                                className={`w-full p-4 pl-12 border rounded-xl shadow-sm focus:ring-2 focus:border-transparent transition-all ${
+                                className={`w-full p-5 pl-14 border-2 rounded-2xl shadow-lg focus:ring-4 focus:border-transparent transition-all font-semibold ${
                                     formData.patientId === '' && (patientSearch || patientSuggestions.length > 0) 
-                                    ? 'border-red-400 bg-red-50 focus:ring-red-500' 
-                                    : formData.patientId ? 'border-green-400 bg-green-50 focus:ring-green-500' : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-red-400 bg-red-50 focus:ring-red-300' 
+                                    : formData.patientId ? 'border-green-400 bg-green-50 focus:ring-green-300' : 'border-gray-300 focus:ring-indigo-300'
                                 }`}
                                 autoComplete="off"
                             />
-                            <svg className="absolute left-4 top-4 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            <svg className="absolute left-5 top-5 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             {isPatientSelected && (
-                                <div className="absolute right-4 top-4">
-                                    <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <div className="absolute right-5 top-5">
+                                    <svg className="w-7 h-7 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
                                 </div>
                             )}
                         </div>
                         {formData.patientId === '' && patientSearch && (
-                           <p className="text-red-600 text-sm mt-2">Please select a patient from the list.</p>
+                           <p className="text-red-600 text-sm mt-2 font-semibold">Please select a patient from the list.</p>
                         )}
                         
                         {patientSuggestions.length > 0 && formData.patientId === '' && (
-                            <ul className="border border-gray-300 rounded-xl mt-1 max-h-48 overflow-y-auto bg-white shadow-lg">
+                            <ul className="border-2 border-indigo-200 rounded-2xl mt-2 max-h-60 overflow-y-auto bg-white shadow-2xl">
                                 {patientSuggestions.map(patient => (
                                     <li 
                                         key={patient.id} 
                                         onClick={() => handlePatientSelect(patient)}
-                                        className="p-3 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                        className="p-4 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all border-b border-gray-100 last:border-b-0 font-semibold hover:pl-6"
                                     >
-                                        <span className='font-semibold'>{patient.display}</span>
+                                        {patient.display}
                                     </li>
                                 ))}
                             </ul>
@@ -245,19 +246,19 @@ function CreateAppointmentPage() {
                     </div>
                     
                     {/* Clinician Selection */}
-                    <div className='mb-6'>
-                        <label className='block text-gray-700 font-semibold mb-2' htmlFor="doctorId">
-                            2. Assign Clinician <span className="text-red-500">*</span>
+                    <div className='mb-8'>
+                        <label className='block text-gray-900 font-black text-lg mb-3 flex items-center gap-2' htmlFor="doctorId">
+                            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black">2</span>
+                            Assign Clinician <span className="text-red-500">*</span>
                         </label>
                         <select
                             id="doctorId"
                             name="doctorId"
                             onChange={handleChange}
                             value={formData.doctorId}
-                            className='w-full p-4 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+                            className='w-full p-5 border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-indigo-300 focus:border-transparent transition-all font-bold text-gray-800'
                         >
                             <option value="" disabled>Select a clinician...</option>
-                            {/* (TS) 19. clinician.id เป็น number */}
                             {clinicians.map(clinician => (
                                 <option key={clinician.id} value={clinician.id}>
                                     {clinician.fullName}
@@ -267,74 +268,119 @@ function CreateAppointmentPage() {
                     </div>
                     
                     {/* Date and Time Section */}
-                    <div className="mb-6">
-                        <label className='block text-gray-700 font-semibold mb-2'>
-                            3. Select Time Slot <span className="text-red-500">*</span>
+                    <div className="mb-8">
+                        <label className='block text-gray-900 font-black text-lg mb-3 flex items-center gap-2'>
+                            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black">3</span>
+                            Select Time Slot <span className="text-red-500">*</span>
                         </label>
-                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-3 gap-5'>
                             <div>
-                                <label className='text-sm text-gray-600' htmlFor="date">Date</label>
+                                <label className='text-sm font-bold text-gray-600 mb-2 block' htmlFor="date">Date</label>
                                 <input 
                                     type="date" 
                                     id="date" 
                                     name="date" 
                                     onChange={handleChange} 
-                                    className='w-full p-4 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+                                    className='w-full p-5 border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-indigo-300 focus:border-transparent transition-all font-semibold'
                                 />
                             </div>
                             <div>
-                                <label className='text-sm text-gray-600' htmlFor="startTime">Start Time</label>
+                                <label className='text-sm font-bold text-gray-600 mb-2 block' htmlFor="startTime">Start Time</label>
                                 <input 
                                     type="time" 
                                     id="startTime" 
                                     name="startTime" 
                                     onChange={handleChange} 
-                                    className='w-full p-4 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+                                    className='w-full p-5 border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-indigo-300 focus:border-transparent transition-all font-semibold'
                                 />
                             </div>
                             <div>
-                                <label className='text-sm text-gray-600' htmlFor="endTime">End Time</label>
+                                <label className='text-sm font-bold text-gray-600 mb-2 block' htmlFor="endTime">End Time</label>
                                 <input 
                                     type="time" 
                                     id="endTime" 
                                     name="endTime" 
                                     onChange={handleChange} 
-                                    className='w-full p-4 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
+                                    className='w-full p-5 border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-indigo-300 focus:border-transparent transition-all font-semibold'
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Reception Notes */}
-                    <div className='mb-8'>
-                        <label className='block text-gray-700 font-semibold mb-2 flex items-center gap-2' htmlFor="notesReception">
-                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div className='mb-10'>
+                        <label className='block text-gray-900 font-black text-lg mb-3 flex items-center gap-2' htmlFor="notesReception">
+                            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black">4</span>
+                            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            4. Reception Notes 
-                            <span className="text-gray-400 text-sm font-normal">(Optional)</span>
+                            Reception Notes 
+                            <span className="text-gray-400 text-base font-normal">(Optional)</span>
                         </label>
                         <textarea 
                             id="notesReception" 
                             name="notesReception" 
-                            rows={4} 
+                            rows={5} 
                             placeholder="Add any additional information or reason for visit..." 
                             onChange={handleChange} 
-                            className='w-full p-4 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none'
+                            className='w-full p-5 border-2 border-gray-300 rounded-2xl shadow-lg focus:ring-4 focus:ring-indigo-300 focus:border-transparent transition-all resize-none font-medium'
                         />
                     </div>
 
                     <button 
                         type="submit" 
-                        className='bg-gradient-to-r from-blue-600 to-blue-700 text-white w-full p-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-2 group'
+                        className='bg-gradient-to-r from-blue-600 via-indigo-700 to-purple-700 text-white w-full p-5 rounded-2xl font-black text-xl shadow-2xl hover:shadow-3xl hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden'
                     >
-                        <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <svg className="w-7 h-7 group-hover:scale-110 transition-transform relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                         </svg>
-                        Create Appointment
+                        <span className="relative z-10">Create Appointment</span>
                     </button>
                 </form>
             </div>
+
+            <style jsx>{`
+                @keyframes blob {
+                    0% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0px, 0px) scale(1); }
+                }
+                .animate-blob {
+                    animation: blob 7s infinite;
+                }
+                .animation-delay-2000 {
+                    animation-delay: 2s;
+                }
+                .animation-delay-4000 {
+                    animation-delay: 4s;
+                }
+                @keyframes fade-in-down {
+                    0% {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                @keyframes fade-in {
+                    0% {
+                        opacity: 0;
+                    }
+                    100% {
+                        opacity: 1;
+                    }
+                }
+                .animate-fade-in-down {
+                    animation: fade-in-down 0.8s ease-out;
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.6s ease-out 0.2s both;
+                }
+            `}</style>
         </div>
     );
 }

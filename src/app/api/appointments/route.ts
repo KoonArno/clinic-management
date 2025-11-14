@@ -2,11 +2,12 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { authorize } from '@/lib/auth'; // (TS) 1. Import authorize ที่แก้ไขแล้ว
-import { Role, AppointmentStatus, Prisma } from '@prisma/client'; // (TS) 2. Import Enums และ Prisma Type
+import { authorize } from '@/lib/auth';
+import { Role, AppointmentStatus, Prisma } from '@prisma/client';
 
 // (Helper function: generateRecordNumber - ส่วนนี้เหมือนเดิมครับ)
 async function generateRecordNumber() {
+    // ... (โค้ดเดิม)
     const latestAppointment = await prisma.appointment.findFirst({
         orderBy: { id: 'desc' },
         select: { id: true },
@@ -18,21 +19,17 @@ async function generateRecordNumber() {
 // ====================================================================
 // GET Handler
 // ====================================================================
-export async function GET(request: NextRequest) { // (TS) 3. กำหนด Type
+export async function GET(request: NextRequest) {
     
-    // (TS) 4. ใช้ Role enum
     const allowedRoles: Role[] = [Role.reception, Role.admin, Role.clinician];
-    // (TS) 5. เรียกใช้ authorize (ซึ่งตอนนี้ทำงานถูกต้องแล้ว)
     const auth = await authorize(request, allowedRoles);
 
     if (!auth.isAuthorized) {
         return NextResponse.json({ message: "Unauthorized access" }, { status: 401 });
     }
     
-    // (TS) 6. กำหนด Type ให้ whereClause
     let whereClause: Prisma.AppointmentWhereInput = {};
 
-    // (TS) 7. ใช้ Role enum และเช็ค userId
     if (auth.role === Role.clinician && auth.userId) {
         whereClause = {
             doctorId: auth.userId
@@ -58,11 +55,13 @@ export async function GET(request: NextRequest) { // (TS) 3. กำหนด Typ
                 doctor: { 
                     select: {
                         username: true,
+                        fullName: true // <--- (1) เพิ่ม fullName ของ doctor
                     }
                 },
                 createdBy: { 
                     select: {
                         username: true,
+                        fullName: true // <--- (1) เพิ่ม fullName ของ createdBy
                     }
                 }
             },
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) { // (TS) 3. กำหนด Typ
             }
         });
 
-        // (TS) 8. Type ของ apt ถูกต้องอยู่แล้วเพราะ Prisma + Select
+        // (2) อัปเดต map ให้ส่ง fullName ออกไป
         const formattedAppointments = appointments.map(apt => ({
             recordNumber: apt.recordNumber,
             startTime: apt.startTime,
@@ -79,8 +78,8 @@ export async function GET(request: NextRequest) { // (TS) 3. กำหนด Typ
             status: apt.status,
             patientName: `${apt.patient.firstName} ${apt.patient.lastName}`,
             patientRecordNumber: apt.patient.recordNumber,
-            doctorUsername: apt.doctor.username,
-            createdByUsername: apt.createdBy.username,
+            doctorFullName: apt.doctor.fullName, // <--- (2) เปลี่ยนจาก doctorUsername
+            createdByFullName: apt.createdBy.fullName, // <--- (2) เปลี่ยนจาก createdByUsername
             notesReception: apt.notesReception,
         }));
 
@@ -95,19 +94,12 @@ export async function GET(request: NextRequest) { // (TS) 3. กำหนด Typ
     }
 }
 
-// (TS) 9. สร้าง Interface สำหรับ Body ของ POST
-interface AppointmentCreatePayload {
-    patientId: number;
-    doctorId: number | string; // (TS) 10. รับ string จาก form ได้
-    startTime: string; // รับเป็น ISO String
-    endTime: string; // รับเป็น ISO String
-    notesReception?: string | null;
-}
-
 // ====================================================================
 // POST Handler
 // ====================================================================
-export async function POST(request: NextRequest) { // (TS) 11. กำหนด Type
+// (ส่วน POST handler เหมือนเดิม ไม่มีการแก้ไข)
+// ... (โค้ดเดิม)
+export async function POST(request: NextRequest) {
     
     const allowedRoles: Role[] = [Role.reception, Role.admin];
     const auth = await authorize(request, allowedRoles); 
@@ -117,8 +109,7 @@ export async function POST(request: NextRequest) { // (TS) 11. กำหนด T
     }
 
     try {
-        // (TS) 12. กำหนด Type ให้ body
-        const body: AppointmentCreatePayload = await request.json();
+        const body: any = await request.json(); // (TS) 9. สร้าง Interface สำหรับ Body ของ POST (ยังเป็น any อยู่)
         const { patientId, doctorId, startTime, endTime, notesReception } = body;
 
         // 1. Validation
@@ -140,7 +131,7 @@ export async function POST(request: NextRequest) { // (TS) 11. กำหนด T
         }
 
         // 2. Overlap Check
-        const numericDoctorId = parseInt(String(doctorId)); // (TS) 13. แปลงเป็น number
+        const numericDoctorId = parseInt(String(doctorId));
         
         const conflict = await prisma.appointment.findFirst({
             where: {
@@ -165,7 +156,6 @@ export async function POST(request: NextRequest) { // (TS) 11. กำหนด T
             return NextResponse.json({ message: "Patient not found." }, { status: 404 });
         }
 
-        // (TS) 14. ใช้ Role enum
         const doctorIsClinician = await prisma.user.findFirst({ 
             where: { id: numericDoctorId, role: Role.clinician } 
         });
@@ -178,7 +168,6 @@ export async function POST(request: NextRequest) { // (TS) 11. กำหนด T
         // 5. Get User ID from session
         const createdByUserId = auth.userId; 
 
-        // (TS) 15. ตรวจสอบว่า userId ไม่ใช่ null
         if (!createdByUserId) {
             return NextResponse.json(
                 { message: "Authentication error: User ID not found in session." }, 
@@ -196,7 +185,7 @@ export async function POST(request: NextRequest) { // (TS) 11. กำหนด T
                 endTime: newEndTime,
                 notesReception: notesReception || null,
                 createdByUserId: createdByUserId, 
-                status: AppointmentStatus.PENDING, // (TS) 16. ใช้ enum
+                status: AppointmentStatus.PENDING,
             },
         });
 

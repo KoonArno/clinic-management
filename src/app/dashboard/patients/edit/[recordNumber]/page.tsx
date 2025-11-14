@@ -1,7 +1,6 @@
 // src/app/dashboard/patients/edit/[recordNumber]/page.tsx
 "use client";
 
-// (TS) 1. Import React และ Types
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
@@ -9,32 +8,28 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Role } from '@prisma/client';
 
-// (TS) 2. Interface สำหรับข้อมูล Patient ที่ดึงมา (จาก API)
 interface PatientData {
     firstName: string;
     lastName: string;
-    gender: string; // (TS) 3. API ส่งมาเป็น string
-    dateOfBirth: string; // ISO String
+    gender: string;
+    dateOfBirth: string;
     allergies: string | null;
     medicalHistory: string | null;
     currentMedications: string | null;
 }
 
-// (TS) 4. Interface สำหรับ State ของ Form
 interface PatientEditFormData {
     firstName: string;
     lastName: string;
-    gender: 'male' | 'female' | 'other'; // (TS) 5. จำกัดค่า
-    dateOfBirth: string; // YYYY-MM-DD (สำหรับ input)
+    gender: 'male' | 'female' | 'other';
+    dateOfBirth: string;
     allergies: string;
     medicalHistory: string;
     currentMedications: string;
 }
 
-// (TS) 6. Helper format วันที่
 const formatDateForInput = (isoString: string | null): string => {
     if (!isoString) return '';
-    // (TS) 7. เพิ่ม try...catch กัน Error
     try {
         return new Date(isoString).toISOString().split('T')[0];
     } catch (e) {
@@ -42,18 +37,15 @@ const formatDateForInput = (isoString: string | null): string => {
     }
 };
 
-// (TS) 8. สร้าง Type สำหรับ Gender
 type Gender = 'male' | 'female' | 'other';
 
 function EditPatientPage() {
     const router = useRouter();
-    // (TS) 9. กำหนด Type ให้ params
     const params = useParams() as { recordNumber: string };
     const { recordNumber } = params;
     
     const { data: session, status } = useSession();
     
-    // (TS) 10. กำหนด Type ให้ State
     const [formData, setFormData] = useState<PatientEditFormData>({
         firstName: '',
         lastName: '',
@@ -71,7 +63,6 @@ function EditPatientPage() {
         if (!recordNumber || status !== "authenticated") return;
 
         const userRole = session?.user?.role;
-        // (TS) 11. ใช้ Role enum
         if (userRole !== Role.reception && userRole !== Role.admin) {
             setError("You do not have permission to edit patient records.");
             setIsLoading(false);
@@ -85,10 +76,8 @@ function EditPatientPage() {
                     const errData = await res.json();
                     throw new Error(errData.message || "Failed to fetch patient data.");
                 }
-                // (TS) 12. กำหนด Type ให้ data
                 const data: PatientData = await res.json();
                 
-                // (TS) 13. Cast gender ที่รับมาให้ตรง Type
                 const genderValue = (data.gender as Gender) || 'other';
 
                 setFormData({
@@ -101,7 +90,7 @@ function EditPatientPage() {
                     currentMedications: data.currentMedications || '',
                 });
                 
-            } catch (err: any) { // (TS) 14. Type error
+            } catch (err: any) {
                 console.error("Error fetching patient:", err);
                 setError(err.message);
             } finally {
@@ -112,14 +101,13 @@ function EditPatientPage() {
         fetchPatientData();
     }, [recordNumber, status, session]);
 
-    // (TS) 15. กำหนด Type ให้ Event
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         
         if (name === 'gender') {
             setFormData(prev => ({
                 ...prev,
-                gender: value as Gender, // (TS) 16. Cast value
+                gender: value as Gender,
             }));
         } else {
             setFormData(prev => ({
@@ -130,7 +118,6 @@ function EditPatientPage() {
         setError('');
     };
     
-    // (TS) 17. กำหนด Type ให้ Form Event
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
@@ -142,7 +129,6 @@ function EditPatientPage() {
         }
 
         try {
-            // (TS) 18. สร้าง Payload
             const payload = {
                 ...formData,
                 dateOfBirth: new Date(dateOfBirth).toISOString(), 
@@ -170,54 +156,77 @@ function EditPatientPage() {
 
     if (isLoading || status === "loading") {
         return (
-            <div className="min-h-screen ...">
-                {/* ... (Loading) ... */}
+            <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 relative overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                </div>
+                <Navbar />
+                <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10'>
+                    <div className="text-center py-16">
+                        <div className="inline-block relative">
+                            <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-pink-400 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+                        </div>
+                        <p className="text-gray-600 mt-6 font-medium text-lg">Loading patient data...</p>
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+            </div>
+
             <Navbar />
-            <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl'>
-                <Link href="/dashboard/patients" className='inline-flex items-center text-blue-600 hover:text-blue-800 font-medium mb-6 transition-colors group'>
-                    <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            
+            <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl relative z-10'>
+                <Link href="/dashboard/patients" className='inline-flex items-center gap-2 text-indigo-600 hover:text-purple-600 font-bold mb-8 transition-all group bg-white/70 backdrop-blur-sm px-4 py-2 rounded-xl shadow-md hover:shadow-lg'>
+                    <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
                     </svg>
                     Back to Patient Records
                 </Link>
                 
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="text-4xl">✏️</span>
-                        <h1 className='text-4xl font-bold text-gray-900'>Edit Patient Record</h1>
-                    </div>
-                    <p className="text-xl text-gray-600 ml-14">Record No: <span className="font-mono font-semibold text-indigo-600">{recordNumber}</span></p>
+                <div className="mb-10 animate-fade-in-down">
+                    <h1 className='text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 mb-3 flex items-center gap-4'>
+                        <span className="text-5xl">✏️</span>
+                        Edit Patient Record
+                    </h1>
+                    <p className="text-gray-700 text-lg font-semibold">Record No: <span className="font-mono font-bold text-indigo-600">{recordNumber}</span></p>
                 </div>
                 
-                <form onSubmit={handleSubmit} className='bg-white rounded-2xl shadow-lg border border-gray-100 p-8'>
+                <form onSubmit={handleSubmit} className='bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 animate-fade-in'>
                     
                     {error && (
-                        <div className='bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex items-start gap-3'>
+                        <div className='bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 text-red-700 p-4 rounded-xl mb-6 flex items-start gap-3 shadow-lg'>
                             <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
                             </svg>
-                            <span>{error}</span>
+                            <span className="font-semibold">{error}</span>
                         </div>
                     )}
                     
-                    {/* Basic Information Section (เหมือน Create) */}
+                    {/* Basic Information Section */}
                     <div className="mb-8">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2 pb-3 border-b border-gray-200">
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
+                        <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3 pb-4 border-b-2 border-gradient-to-r from-indigo-200 to-purple-200">
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-lg">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
                             Basic Information
                         </h2>
                         
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             <div>
-                                <label className='...' htmlFor="firstName">
+                                <label className='block text-gray-700 font-bold mb-2 text-sm' htmlFor="firstName">
                                     First Name <span className="text-red-500">*</span>
                                 </label>
                                 <input 
@@ -226,11 +235,11 @@ function EditPatientPage() {
                                     name="firstName" 
                                     value={formData.firstName} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all font-semibold'
                                 />
                             </div>
                             <div>
-                                <label className='...' htmlFor="lastName">
+                                <label className='block text-gray-700 font-bold mb-2 text-sm' htmlFor="lastName">
                                     Last Name <span className="text-red-500">*</span>
                                 </label>
                                 <input 
@@ -239,14 +248,14 @@ function EditPatientPage() {
                                     name="lastName" 
                                     value={formData.lastName} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all font-semibold'
                                 />
                             </div>
                         </div>
 
                         <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mt-6'>
                             <div className='col-span-1'>
-                                <label className='...' htmlFor="gender">
+                                <label className='block text-gray-700 font-bold mb-2 text-sm' htmlFor="gender">
                                     Gender <span className="text-red-500">*</span>
                                 </label>
                                 <select 
@@ -254,7 +263,7 @@ function EditPatientPage() {
                                     name="gender" 
                                     value={formData.gender} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all font-semibold'
                                 >
                                     <option value="male">Male</option>
                                     <option value="female">Female</option>
@@ -262,7 +271,7 @@ function EditPatientPage() {
                                 </select>
                             </div>
                             <div className='col-span-2'>
-                                <label className='...' htmlFor="dateOfBirth">
+                                <label className='block text-gray-700 font-bold mb-2 text-sm' htmlFor="dateOfBirth">
                                     Date of Birth <span className="text-red-500">*</span>
                                 </label>
                                 <input 
@@ -271,22 +280,31 @@ function EditPatientPage() {
                                     name="dateOfBirth" 
                                     value={formData.dateOfBirth} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all font-semibold'
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Medical Information Section (เหมือน Create) */}
+                    {/* Medical Information Section */}
                     <div className="mb-8">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4 ...">
-                            {/* ... (Header) ... */}
+                        <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3 pb-4 border-b-2 border-gradient-to-r from-green-200 to-emerald-200">
+                            <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-2xl shadow-lg">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            Medical Information
+                            <span className="text-gray-500 text-sm font-normal ml-2">(Optional)</span>
                         </h2>
 
                         <div className='space-y-6'>
                             <div>
-                                <label className='...' htmlFor="allergies">
-                                    {/* ... (Allergies Label) ... */}
+                                <label className='block text-gray-700 font-bold mb-2 flex items-center gap-2 text-sm' htmlFor="allergies">
+                                    <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Allergies
                                 </label>
                                 <textarea 
                                     id="allergies" 
@@ -294,13 +312,17 @@ function EditPatientPage() {
                                     rows={3} 
                                     value={formData.allergies} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    placeholder="e.g., Allergy to Penicillin, Peanuts"
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all resize-none font-medium'
                                 />
                             </div>
 
                             <div>
-                                <label className='...' htmlFor="medicalHistory">
-                                    {/* ... (Medical History Label) ... */}
+                                <label className='block text-gray-700 font-bold mb-2 flex items-center gap-2 text-sm' htmlFor="medicalHistory">
+                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Medical History
                                 </label>
                                 <textarea 
                                     id="medicalHistory" 
@@ -308,13 +330,17 @@ function EditPatientPage() {
                                     rows={4} 
                                     value={formData.medicalHistory} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    placeholder="Past illnesses, surgeries, or treatments..."
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all resize-none font-medium'
                                 />
                             </div>
 
                             <div>
-                                <label className='...' htmlFor="currentMedications">
-                                    {/* ... (Current Medications Label) ... */}
+                                <label className='block text-gray-700 font-bold mb-2 flex items-center gap-2 text-sm' htmlFor="currentMedications">
+                                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                    </svg>
+                                    Current Medications
                                 </label>
                                 <textarea 
                                     id="currentMedications" 
@@ -322,7 +348,8 @@ function EditPatientPage() {
                                     rows={3} 
                                     value={formData.currentMedications} 
                                     onChange={handleChange} 
-                                    className='...'
+                                    placeholder="List of medications currently being taken..."
+                                    className='w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:ring-4 focus:ring-purple-300 focus:border-purple-400 transition-all resize-none font-medium'
                                 />
                             </div>
                         </div>
@@ -330,15 +357,58 @@ function EditPatientPage() {
 
                     <button 
                         type="submit" 
-                        className='bg-gradient-to-r from-indigo-600 to-indigo-700 ...'
+                        className='group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 via-purple-700 to-pink-700 text-white w-full px-8 py-4 rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 font-black text-lg hover:scale-[1.02] relative overflow-hidden'
                     >
-                        <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <svg className="w-6 h-6 group-hover:scale-110 transition-transform relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                         </svg>
-                        Save Changes
+                        <span className="relative z-10">Save Changes</span>
                     </button>
                 </form>
             </div>
+
+            <style jsx>{`
+                @keyframes blob {
+                    0% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0px, 0px) scale(1); }
+                }
+                .animate-blob {
+                    animation: blob 7s infinite;
+                }
+                .animation-delay-2000 {
+                    animation-delay: 2s;
+                }
+                .animation-delay-4000 {
+                    animation-delay: 4s;
+                }
+                @keyframes fade-in-down {
+                    0% {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                @keyframes fade-in {
+                    0% {
+                        opacity: 0;
+                    }
+                    100% {
+                        opacity: 1;
+                    }
+                }
+                .animate-fade-in-down {
+                    animation: fade-in-down 0.8s ease-out;
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.6s ease-out 0.2s both;
+                }
+            `}</style>
         </div>
     );
 }
